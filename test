@@ -1,0 +1,93 @@
+import numpy as np
+
+def vec(a1, b1, c1):
+    # This function gets 3 values as elements of a 3D vector and gives a (3,1) column matrix as the representation of the vector
+    return np.array([[a1], [b1], [c1]])
+
+def dotprod(V1, V2):
+    # Dot product of two vectors
+    return np.dot(V1.T, V2)
+
+def vecmag(V1):
+    # Magnitude of a vector
+    return np.sqrt(dotprod(V1, V1))
+
+def unitvec(V1):
+    # Unit vector
+    return V1 * (1 / vecmag(V1))
+
+def crosprod(V1, V2):
+    # Cross product of two vectors
+    return np.array([[V1[1,0]*V2[2,0] - V1[2,0]*V2[1,0]],
+                     [V1[2,0]*V2[0,0] - V1[0,0]*V2[2,0]],
+                     [V1[0,0]*V2[1,0] - V1[1,0]*V2[0,0]]])
+
+def Rodrigues(V, K, theta):
+    # Rodrigues' rotation formula
+    return V * np.cos(theta) + crosprod(K, V) * np.sin(theta) + K * dotprod(K, V) * (1 - np.cos(theta))
+
+def vec2screw(v, r):
+    # Transform line direction v and a point r on the line to screw vector
+    SC1 = crosprod(r, v)
+    return np.concatenate((v, SC1), axis=0)
+
+def ScrSum(S1, S2):
+    # Sum of two screws
+    return [S1[0] + S2[0], S1[1] + S2[1]]
+
+def ScrScMult(S1, S2):
+    # Screw scalar multiplication
+    return [S1[0] * S2[0], S1[0] * S2[1] - S1[1] * S2[0]]
+
+def ScrInProd(S1, S2):
+    # Inner product of two screws
+    return [dotprod(S1[0], S2[0]), dotprod(S1[0], S2[1]) - dotprod(S1[1], S2[0])]
+
+def ScrCrosProd(S1, S2):
+    # Cross product of two screws
+    return [crosprod(S1[0], S2[0]), crosprod(S1[0], S2[1]) - crosprod(S1[1], S2[0])]
+
+def RcprclProd(S1, S2):
+    # Reciprocal product of two screws
+    return dotprod(S1[0], S2[1]) + dotprod(S1[1], S2[0])
+
+def Skew(V1):
+    # Skew symmetric matrix
+    return np.array([[0, -V1[2,0], V1[1,0]],
+                     [V1[2,0], 0, -V1[0,0]],
+                     [-V1[1,0], V1[0,0], 0]])
+
+def PlcFrmTwoPnt(P1, P2):
+    # Plucker coordinates of a line given 2 points on that line
+    S = unitvec(P2 - P1)
+    V_l = crosprod(P2, S)
+    return [S, V_l]
+
+def FndClsPntLnOrg(PC1):
+    # Closest point of a line to the origin
+    return crosprod(PC1[0], PC1[1])
+
+def FndClsPntLnPnt(PC1, P1):
+    # Closest point of a line to a point
+    P0 = FndClsPntLnOrg(PC1)
+    S01 = crosprod((P0 - P1), PC1[0])
+    return P1 + crosprod(S01, PC1[0])
+
+def FtCmnPPndclr(PC1, PC2):
+    # common perpendicular
+    num1 = crosprod(-PC1[1], (crosprod(PC2[0], (crosprod(PC1[0], PC2[0])))))
+    num2 = dotprod(PC2[1], (crosprod(PC1[0], PC2[0])))
+    denom = vecmag(crosprod(PC1[0], PC2[0])) ** 2
+    P1 = (num1 + num2 * PC1[0]) / denom
+
+    num3 = crosprod(+PC2[1], (crosprod(PC1[0], (crosprod(PC1[0], PC2[0])))))
+    num4 = dotprod(PC1[1], (crosprod(PC1[0], PC2[0])))
+    P2 = (num3 - num4 * PC2[0]) / denom
+
+    return [P1, P2]
+
+def RdrgsToRMat(k1, T1):
+    # Rotation matrix using Rodrigues' formula
+    K1 = Skew(k1)
+    return np.identity(3) + np.sin(T1) * K1 + (1 - np.cos(T1)) * (K1 @ K1)
+
